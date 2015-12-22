@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 这里的namespace名字必须为执行该sql的dao地址&nbsp; -->
+
+<mapper namespace="com.eason.dao.mapper.UserMapper">
+	
+	<resultMap id="userResult" type="com.eason.dao.entity.User">
+		<result property="uid" column="uid"/>
+		<result property="username" column="username"/>
+		<result property="password" column="password"/>
+	</resultMap>
+	
+    <select id="getUser" parameterType="map" resultMap="userResult" >  
+        <![CDATA[ 
+            SELECT * FROM t_user 
+            	WHERE uid = #{uid}
+        ]]>   
+    </select>
+    
+    <insert id="add" parameterType="com.eason.dao.entity.User">
+   		 <![CDATA[ 
+            INSERT INTO t_user(uid, username, password) VALUES(#{uid},#{username},#{password})
+        ]]>
+    </insert>
+    
+    <update id="update" parameterType="com.eason.dao.entity.User">
+   		<![CDATA[ 
+            UPDATE t_user SET username=#{username}, password=#{password} WHERE uid=#{uid}
+        ]]> 
+    </update>
+    
+</mapper>

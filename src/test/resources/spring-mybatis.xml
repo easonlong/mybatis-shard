@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:util="http://www.springframework.org/schema/util"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-3.0.xsd
+		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.0.xsd">
+	<!-- Root Context: defines shared resources visible to all other web components -->
+	<!-- 这里有个大坑，MapperScannerConfigurer的创建优先级太高，PropertyPlaceholderConfigurer还没加载就开始创建sqlSessionFactory，于是properties里定义的量全部失效 
+		解决办法：使用<property name="sqlSessionFactoryBeanName" value="sqlSessionFactory" /> -->
+	<bean id="abstractDataSource" abstract="true">
+		<property name="driverClassName" value="${jdbc.driver}" />
+		<property name="initialSize" value="${dbcp.initialSize}" />
+		<property name="maxActive" value="${dbcp.maxActive}" />
+		<property name="maxIdle" value="${dbcp.maxIdle}" />
+		<property name="maxWait" value="${dbcp.maxWait}" />
+	</bean>
+
+	<bean id="dataSource.main" class="org.apache.commons.dbcp.BasicDataSource"
+		parent="abstractDataSource" destroy-method="close">
+		<property name="url" value="${jdbc.url.main}" />
+		<property name="username" value="${jdbc.username}" />
+		<property name="password" value="${jdbc.password}" />
+	</bean>
+
+	<bean id="sqlSessionFactory.main" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="dataSource.main" />
+		<property name="mapperLocations" value="classpath*:com/eason/dao/mapper/*Mapper.xml" />
+	</bean>
+
+	<bean id="transactionManager.main"
+		class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="dataSource.main" />
+		<qualifier value="main" />
+	</bean>
+
+	<tx:annotation-driven transaction-manager="transactionManager.main" />
+
+	<bean id="dataSource.shard.1" class="org.apache.commons.dbcp.BasicDataSource"
+		parent="abstractDataSource" destroy-method="close">
+		<property name="url" value="${jdbc.url.shard.1}" />
+		<property name="username" value="${jdbc.username}" />
+		<property name="password" value="${jdbc.password}" />
+	</bean>
+
+	<bean id="sqlSessionFactory.shard.1" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="dataSource.shard.1" />
+		<property name="mapperLocations" value="classpath*:com/eason/dao/mapper/*Mapper.xml" />
+	</bean>
+
+	<bean id="transactionManager.shard.1"
+		class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="dataSource.shard.1" />
+		<qualifier value="shard1" />
+	</bean>
+
+	<tx:annotation-driven transaction-manager="transactionManager.shard.1" />
+
+	<bean id="dataSource.shard.2" class="org.apache.commons.dbcp.BasicDataSource"
+		parent="abstractDataSource" destroy-method="close">
+		<property name="url" value="${jdbc.url.shard.2}" />
+		<property name="username" value="${jdbc.username}" />
+		<property name="password" value="${jdbc.password}" />
+	</bean>
+
+	<bean id="sqlSessionFactory.shard.2" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="dataSource.shard.2" />
+		<property name="mapperLocations" value="classpath*:com/eason/dao/mapper/*Mapper.xml" />
+	</bean>
+
+	<bean id="transactionManager.shard.2"
+		class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="dataSource.shard.2" />
+		<qualifier value="shard2" />
+	</bean>
+
+	<tx:annotation-driven transaction-manager="transactionManager.shard.2" />
+
+	<util:map id="shardSqlSessionFactorys">
+		<entry key="1" value="sqlSessionFactory.shard.1" />
+		<entry key="2" value="sqlSessionFactory.shard.2" />
+	</util:map>
+
+	<bean id="uidShardPolicy" class="com.eason.mybatis.shard.policy.impl.UidShardPolicy">
+		<constructor-arg value="2" />
+	</bean>
+
+	<bean class="com.eason.mybatis.shard.ProxyMapperScannerConfigurer">
+		<property name="basePackage" value="com.eason.dao.mapper" />
+		<property name="defaultSqlSessionFactoryBeanName" value="sqlSessionFactory.main" />
+		<property name="shardSqlSessionFactoryBeanNames" ref="shardSqlSessionFactorys" />
+		<property name="shardableMethods" value="update,getUser,add" />
+		<property name="shardPolicy" ref="uidShardPolicy" />
+	</bean>
+
+	<!-- Spring + MyBatis + DBCP. end -->
+
+
+</beans>

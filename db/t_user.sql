@@ -1,0 +1,7 @@
+CREATE TABLE `t_user` (
+   `uid` VARCHAR(32) NOT NULL DEFAULT '' COMMENT '唯一id',
+   `username` VARCHAR(32) DEFAULT NULL COMMENT '用户名',
+   `password` VARCHAR(32) DEFAULT NULL COMMENT '密码',
+   PRIMARY KEY (`uid`),
+   UNIQUE KEY `username` (`username`) USING BTREE
+ ) ENGINE=INNODB DEFAULT CHARSET=utf8 COMMENT='用户表';
